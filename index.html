@@ -3317,6 +3317,261 @@ let currentAnswer = 0;
 let msgTimer = null;
 let wrongAlertTimer = null;
 
+// === Render vertical de operaciones (Fase 1) ===
+function numToDigits(n) {
+  if (n === null || n === undefined || isNaN(n)) return [];
+  const s = Math.abs(Math.trunc(n)).toString();
+  return s.split('').map(d => parseInt(d, 10));
+}
+function digitsFromStr(s) {
+  if (!s) return [];
+  return s.replace(/[^0-9]/g, '').split('').map(d => parseInt(d, 10));
+}
+let currentVerticalType = null; // 'add'|'sub'|'mul'|'div'|null
+function renderVerticalMath(q, level) {
+  const L = (typeof level === 'number') ? level : (q && q.level) || player.level || 1;
+  const qEl = document.getElementById('qText');
+  if (!qEl) return;
+  // Nivel 11+ → formato horizontal
+  if (L >= 11 || q.type === 'comb') {
+    currentVerticalType = null;
+    qEl.classList.remove('vmath');
+    qEl.innerHTML = '';
+    qEl.textContent = (q.text || '') + ' = ?';
+    return;
+  }
+  const type = q.type || 'add';
+  currentVerticalType = type;
+  qEl.classList.add('vmath');
+  qEl.innerHTML = '';
+  // Suma
+  if (type === 'add') {
+    const [a, b] = (q.operands && q.operands.length >= 2) ? q.operands : [0, 0];
+    const A = numToDigits(a);
+    const B = numToDigits(b);
+    const cols = Math.max(A.length, B.length, 1);
+    // Fila única de lleva (arriba del primer número)
+    const carryRow = document.createElement('div');
+    carryRow.className = 'vm-carry-row';
+    const carryOp = document.createElement('div'); carryOp.className = 'vm-op'; carryOp.textContent = ''; carryRow.appendChild(carryOp);
+    const carryNums = document.createElement('div'); carryNums.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const carry = document.createElement('div'); carry.className = 'vm-dig carry'; carry.dataset.carry = 'add-' + c; carry.textContent = ''; col.appendChild(carry);
+      carryNums.appendChild(col);
+    }
+    carryRow.appendChild(carryNums);
+    qEl.appendChild(carryRow);
+    // Fila superior (sumando A)
+    const rowTop = document.createElement('div');
+    rowTop.className = 'vm-row vm-top';
+    const opTop = document.createElement('div'); opTop.className = 'vm-op'; opTop.textContent = ''; rowTop.appendChild(opTop);
+    const numsTop = document.createElement('div'); numsTop.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dA = (A.length > c) ? A[A.length - 1 - c] : null;
+      const digA = document.createElement('div'); digA.className = 'vm-dig'; digA.textContent = (dA === null ? '' : dA); col.appendChild(digA);
+      numsTop.appendChild(col);
+    }
+    rowTop.appendChild(numsTop);
+    qEl.appendChild(rowTop);
+    // Fila inferior (sumando B) - signo en esta fila
+    const rowBot = document.createElement('div');
+    rowBot.className = 'vm-row vm-bot';
+    const opBot = document.createElement('div'); opBot.className = 'vm-op'; opBot.textContent = '+'; rowBot.appendChild(opBot);
+    const numsBot = document.createElement('div'); numsBot.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dB = (B.length > c) ? B[B.length - 1 - c] : null;
+      const digB = document.createElement('div'); digB.className = 'vm-dig'; digB.textContent = (dB === null ? '' : dB); col.appendChild(digB);
+      numsBot.appendChild(col);
+    }
+    rowBot.appendChild(numsBot);
+    qEl.appendChild(rowBot);
+    const line = document.createElement('div'); line.className = 'vm-line'; qEl.appendChild(line);
+    const rowRes = document.createElement('div'); rowRes.className = 'vm-row vm-res';
+    const opRes = document.createElement('div'); opRes.className = 'vm-op'; opRes.textContent = '='; rowRes.appendChild(opRes);
+    const numsRes = document.createElement('div'); numsRes.className = 'vm-numbers';
+    const colsRes = Math.max(cols + 1, String(q.answer).length);
+    for (let c = colsRes - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const digIn = document.createElement('div'); digIn.className = 'vm-dig input'; digIn.dataset.col = c; digIn.textContent = ''; col.appendChild(digIn);
+      numsRes.appendChild(col);
+    }
+    rowRes.appendChild(numsRes);
+    qEl.appendChild(rowRes);
+    return;
+  }
+  // Resta
+  if (type === 'sub') {
+    const [a, b] = (q.operands && q.operands.length >= 2) ? q.operands : [0, 0];
+    const A = numToDigits(a);
+    const B = numToDigits(b);
+    const cols = Math.max(A.length, B.length, 1);
+    const borrowRow = document.createElement('div');
+    borrowRow.className = 'vm-carry-row';
+    const borrowOp = document.createElement('div'); borrowOp.className = 'vm-op'; borrowOp.textContent = ''; borrowRow.appendChild(borrowOp);
+    const borrowNums = document.createElement('div'); borrowNums.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const borrow = document.createElement('div'); borrow.className = 'vm-dig borrow'; borrow.dataset.borrow = 'sub-' + c; borrow.textContent = ''; col.appendChild(borrow);
+      borrowNums.appendChild(col);
+    }
+    borrowRow.appendChild(borrowNums);
+    qEl.appendChild(borrowRow);
+    const rowTop = document.createElement('div'); rowTop.className = 'vm-row vm-top';
+    const opTop = document.createElement('div'); opTop.className = 'vm-op'; opTop.textContent = ''; rowTop.appendChild(opTop);
+    const numsTop = document.createElement('div'); numsTop.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dA = (A.length > c) ? A[A.length - 1 - c] : null;
+      const digA = document.createElement('div'); digA.className = 'vm-dig'; digA.textContent = (dA === null ? '' : dA); col.appendChild(digA);
+      numsTop.appendChild(col);
+    }
+    rowTop.appendChild(numsTop);
+    qEl.appendChild(rowTop);
+    const rowBot = document.createElement('div'); rowBot.className = 'vm-row vm-bot';
+    const opBot = document.createElement('div'); opBot.className = 'vm-op'; opBot.textContent = '−'; rowBot.appendChild(opBot);
+    const numsBot = document.createElement('div'); numsBot.className = 'vm-numbers';
+    for (let c = cols - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dB = (B.length > c) ? B[B.length - 1 - c] : null;
+      const digB = document.createElement('div'); digB.className = 'vm-dig'; digB.textContent = (dB === null ? '' : dB); col.appendChild(digB);
+      numsBot.appendChild(col);
+    }
+    rowBot.appendChild(numsBot);
+    qEl.appendChild(rowBot);
+    const line = document.createElement('div'); line.className = 'vm-line'; qEl.appendChild(line);
+    const rowRes = document.createElement('div'); rowRes.className = 'vm-row vm-res';
+    const opRes = document.createElement('div'); opRes.className = 'vm-op'; opRes.textContent = '='; rowRes.appendChild(opRes);
+    const numsRes = document.createElement('div'); numsRes.className = 'vm-numbers';
+    const colsRes = Math.max(cols, String(q.answer).length);
+    for (let c = colsRes - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const digIn = document.createElement('div'); digIn.className = 'vm-dig input'; digIn.dataset.col = c; digIn.textContent = ''; col.appendChild(digIn);
+      numsRes.appendChild(col);
+    }
+    rowRes.appendChild(numsRes);
+    qEl.appendChild(rowRes);
+    return;
+  }
+  // Multiplicación
+  if (type === 'mul') {
+    const [a, b] = (q.operands && q.operands.length >= 2) ? q.operands : [0, 0];
+    const A = numToDigits(a);
+    const B = numToDigits(b);
+    const colsTopCount = Math.max(A.length, B.length);
+    const rowTop = document.createElement('div'); rowTop.className = 'vm-row vm-top';
+    const opTop = document.createElement('div'); opTop.className = 'vm-op'; opTop.textContent = ''; rowTop.appendChild(opTop);
+    const numsTop = document.createElement('div'); numsTop.className = 'vm-numbers';
+    for (let c = colsTopCount - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dA = (A.length > c) ? A[A.length - 1 - c] : null;
+      const digA = document.createElement('div'); digA.className = 'vm-dig'; digA.textContent = (dA === null ? '' : dA); col.appendChild(digA);
+      numsTop.appendChild(col);
+    }
+    rowTop.appendChild(numsTop);
+    qEl.appendChild(rowTop);
+    const rowBot = document.createElement('div'); rowBot.className = 'vm-row vm-bot';
+    const opBot = document.createElement('div'); opBot.className = 'vm-op'; opBot.textContent = '×'; rowBot.appendChild(opBot);
+    const numsBot = document.createElement('div'); numsBot.className = 'vm-numbers';
+    for (let c = colsTopCount - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const dB = (B.length > c) ? B[B.length - 1 - c] : null;
+      const digB = document.createElement('div'); digB.className = 'vm-dig'; digB.textContent = (dB === null ? '' : dB); col.appendChild(digB);
+      numsBot.appendChild(col);
+    }
+    rowBot.appendChild(numsBot);
+    qEl.appendChild(rowBot);
+    const line = document.createElement('div'); line.className = 'vm-line'; qEl.appendChild(line);
+    const rowRes = document.createElement('div'); rowRes.className = 'vm-row vm-res';
+    const opRes = document.createElement('div'); opRes.className = 'vm-op'; opRes.textContent = '='; rowRes.appendChild(opRes);
+    const numsRes = document.createElement('div'); numsRes.className = 'vm-numbers';
+    const resStr = String(Math.trunc(q.answer));
+    const R = resStr.split('').map(x=>parseInt(x,10));
+    const colsResM = Math.max(A.length + B.length, R.length, 1);
+    for (let c = colsResM - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const digIn = document.createElement('div'); digIn.className = 'vm-dig input'; digIn.dataset.col = c; digIn.textContent = ''; col.appendChild(digIn);
+      numsRes.appendChild(col);
+    }
+    rowRes.appendChild(numsRes);
+    qEl.appendChild(rowRes);
+    return;
+  }
+  // División (caja tradicional)
+  if (type === 'div') {
+    const [a, b] = (q.operands && q.operands.length >= 2) ? q.operands : [0, 0]; // dividendo, divisor
+    const D = numToDigits(a);
+    const V = numToDigits(b);
+    const nQ = String(Math.trunc(q.answer)).length;
+    const mkDigits = (digits, cls) => {
+      const wrap = document.createElement('div'); wrap.className = cls;
+      digits.forEach(d => {
+        const col = document.createElement('div'); col.className = 'vm-col';
+        const dig = document.createElement('div'); dig.className = 'vm-dig'; dig.textContent = d;
+        col.appendChild(dig); wrap.appendChild(col);
+      });
+      return wrap;
+    };
+    const box = document.createElement('div'); box.className = 'vm-divbox';
+    const right = document.createElement('div'); right.className = 'vm-div-right';
+    const quot = document.createElement('div'); quot.className = 'vm-div-quot';
+    for (let c = nQ - 1; c >= 0; c--) {
+      const col = document.createElement('div'); col.className = 'vm-col';
+      const digIn = document.createElement('div'); digIn.className = 'vm-dig input'; digIn.dataset.dcol = c; digIn.textContent = '';
+      col.appendChild(digIn); quot.appendChild(col);
+    }
+    right.appendChild(quot);
+    right.appendChild(mkDigits(D, 'vm-div-dividend'));
+    box.appendChild(mkDigits(V, 'vm-div-divisor'));
+    box.appendChild(right);
+    qEl.appendChild(box);
+    return;
+  }
+  // Por defecto horizontal
+  currentVerticalType = null;
+  qEl.classList.remove('vmath');
+  qEl.innerHTML = '';
+  qEl.textContent = (q.text || '') + ' = ?';
+}
+function syncVerticalDigits() {
+  const qEl = document.getElementById('qText');
+  if (!qEl || !qEl.classList.contains('vmath')) return;
+  const inp = document.getElementById('qInput');
+  const val = (inp && inp.value) || '';
+  const digits = digitsFromStr(val);
+  qEl.querySelectorAll('.vm-dig.input[data-col]').forEach(el => {
+    const c = parseInt(el.getAttribute('data-col'), 10);
+    const fromRight = c;
+    const idx = digits.length - 1 - fromRight;
+    const d = (idx >= 0) ? digits[idx] : null;
+    el.textContent = (d === null ? '' : d);
+    el.classList.toggle('active', idx >= 0);
+  });
+  qEl.querySelectorAll('.vm-dig.input[data-dcol]').forEach(el => {
+    const c = parseInt(el.getAttribute('data-dcol'), 10);
+    const fromRight = c;
+    const idx = digits.length - 1 - fromRight;
+    const d = (idx >= 0) ? digits[idx] : null;
+    el.textContent = (d === null ? '' : d);
+    el.classList.toggle('active', idx >= 0);
+  });
+}
+// Función compartida para mostrar una pregunta
+function showQuestion(q) {
+  if (!q) return;
+  currentAnswer = q.answer;
+  renderVerticalMath(q, (q.level !== undefined ? q.level : player.level));
+  const qInputEl = document.getElementById('qInput');
+  if (qInputEl) qInputEl.value = '';
+  const quizElDom = document.getElementById('quiz');
+  if (quizElDom) quizElDom.style.display = 'flex';
+  setPadFocus(10);
+  setTimeout(() => { if (qInputEl) qInputEl.focus(); }, 30);
+  syncVerticalDigits();
+}
+
 function showMsg(txt, color = '#ffe14d', ms = 1800) {
   msgEl.textContent = txt;
   msgEl.style.color = color;
