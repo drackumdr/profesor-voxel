@@ -150,7 +150,25 @@
   .vmath .vm-dig.borrow.neg {
     color: #ff9a9a;
   }
-  .vmath .vm-line {
+  .vmath .vm-line {  /* División larga tradicional */
+  .vmath .vm-divbox {
+    display: flex; flex-direction: row; align-items: flex-end; justify-content: center;
+    gap: clamp(4px, 1.5vw, 8px);
+  }
+  .vmath .vm-div-divisor { display: flex; align-items: flex-end; gap: clamp(2px, 0.5vw, 4px); }
+  .vmath .vm-div-right { display: flex; flex-direction: column; align-items: stretch; }
+  .vmath .vm-div-quot {
+    display: flex; justify-content: flex-end; gap: clamp(2px, 0.5vw, 4px);
+    margin-bottom: clamp(1px, 0.25vw, 2px);
+  }
+  .vmath .vm-div-dividend {
+    display: flex; justify-content: flex-end; gap: clamp(2px, 0.5vw, 4px);
+    border-top: clamp(2px, 0.6vw, 3px) solid rgba(255,225,77,.55);
+    border-left: clamp(2px, 0.6vw, 3px) solid rgba(255,225,77,.55);
+    border-radius: 3px 0 0 0;
+    padding-left: clamp(6px, 1.5vw, 10px);
+  }
+
     width: 100%;
     height: clamp(2px, 0.6vw, 4px);
     background: rgba(255,225,77,.55);
