@@ -2,10 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>MathCraft — El Profesor Voxel</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#87ceeb;font-family:monospace;user-select:none}
-  canvas{display:block}
+  html,body{margin:0;height:100%;overflow:hidden;background:#87ceeb;font-family:monospace;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
+  canvas{display:block;touch-action:none}
   #hud{position:fixed;inset:0;pointer-events:none;color:#fff;
        text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
   #cross{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
@@ -25,12 +28,14 @@
 
   #hotbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
           display:flex;gap:6px;padding:8px;background:rgba(0,0,0,0.55);
-          border-radius:12px;z-index:5;pointer-events:none;
+          border-radius:12px;z-index:5;pointer-events:auto;
           box-shadow:0 4px 16px rgba(0,0,0,.5)}
   #hotbar .slot{width:54px;height:54px;background:rgba(0,0,0,.35);
                 border:2px solid #3a3a3a;border-radius:8px;
                 display:flex;flex-direction:column;align-items:center;justify-content:center;
-                position:relative;color:#fff;font-family:monospace;transition:.15s}
+                position:relative;color:#fff;font-family:monospace;transition:.15s;
+                cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent}
+  #hotbar .slot:active{transform:scale(0.92);border-color:#7cff5a}
   #hotbar .slot.active{border-color:#4caf50;box-shadow:0 0 12px #4caf50;transform:translateY(-3px)}
   #hotbar .slot.empty{opacity:.28}
   #hotbar .swatch{width:26px;height:26px;border-radius:4px;border:1px solid rgba(0,0,0,.5)}
@@ -50,7 +55,8 @@
   #quiz{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
         background:rgba(0,0,0,.8);z-index:10;font-family:monospace}
   #quiz .box{background:#12121f;border:4px solid #4caf50;border-radius:14px;
-             padding:20px 32px;text-align:center;color:#fff;box-shadow:0 0 40px #4caf5088;max-width:92vw}
+             padding:16px 22px;text-align:center;color:#fff;box-shadow:0 0 40px #4caf5088;
+             max-width:94vw;max-height:92vh;overflow-y:auto}
   #quiz h2{margin:0;font-size:18px;color:#4caf50;letter-spacing:2px}
   #quiz .q{font-size:40px;margin:14px 0 12px;color:#fff}
   /* Estilos para operación matemática vertical (Fase 1) - corregidos */
@@ -192,26 +198,63 @@
   .padBtn.padEnter:hover,.padBtn.padEnter.padFocus{background:#1e4c2c;box-shadow:0 0 16px rgba(76,175,80,0.75)}
 
   #prompt{position:absolute;top:58%;left:0;right:0;text-align:center;font-size:18px;color:#fff}
-  /* Controles Táctiles (Mobile & Tablet) */
-  #touchControls{position:fixed;inset:0;pointer-events:none;z-index:9;display:none;user-select:none;-webkit-user-select:none}
-  #touchJoyArea{position:absolute;left:20px;bottom:24px;width:130px;height:130px;pointer-events:auto;
-                background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.25);border-radius:50%;
-                backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center}
-  #touchJoyKnob{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.4);border:2px solid rgba(255,255,255,0.7);
-                box-shadow:0 0 12px rgba(0,0,0,0.5);pointer-events:none;transform:translate(0,0)}
-  #touchButtons{position:absolute;right:14px;bottom:18px;display:grid;grid-template-columns:repeat(3, 56px);gap:8px;pointer-events:auto}
-  .tBtn{width:56px;height:56px;border-radius:50%;background:rgba(20,25,35,0.78);border:2px solid rgba(255,255,255,0.3);
-        color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;
-        backdrop-filter:blur(4px);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .08s}
-  .tBtn:active{transform:scale(0.92);background:rgba(76,175,80,0.5);border-color:#7cff5a}
-  .tBtn.btnJump{grid-column:2;background:rgba(46,125,50,0.78);border-color:#81c784}
-  .tBtn.btnMine{background:rgba(180,50,50,0.78);border-color:#e57373}
-  .tBtn.btnPlace{background:rgba(30,100,160,0.78);border-color:#64b5f6}
-  .tBtn.btnAction{background:rgba(200,140,20,0.78);border-color:#ffd54f}
+  /* Controles Táctiles y Soporte Móvil Rediseñado */
+  #touchControls{position:fixed;inset:0;pointer-events:none;z-index:9;display:none;user-select:none;-webkit-user-select:none;touch-action:none}
+  #touchJoyZone{position:absolute;left:0;bottom:0;width:46vw;height:68vh;pointer-events:auto;touch-action:none;z-index:9}
+  #touchJoyArea{position:absolute;left:28px;bottom:28px;width:126px;height:126px;border-radius:50%;pointer-events:none;
+                background:radial-gradient(circle,rgba(255,255,255,0.13) 0%,rgba(255,255,255,0.03) 70%,rgba(0,0,0,0.35) 100%);
+                border:2px solid rgba(255,255,255,0.28);backdrop-filter:blur(4px);
+                display:flex;align-items:center;justify-content:center;transition:border-color .15s,box-shadow .15s}
+  #touchJoyArea.sprinting{border-color:#ffe14d;box-shadow:0 0 18px rgba(255,225,77,0.7)}
+  #touchJoyKnob{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle,#ffffff 0%,#b0c4de 100%);
+                border:2px solid rgba(255,255,255,0.85);box-shadow:0 3px 10px rgba(0,0,0,0.6);
+                pointer-events:none;transform:translate(0,0);display:flex;align-items:center;justify-content:center;
+                font-size:20px;font-weight:bold;color:#1a202c}
+
+  /* Barra de Objetos Rápidos Táctil */
+  #touchQuickBar{position:absolute;right:12px;bottom:148px;display:flex;gap:5px;pointer-events:auto;z-index:10}
+  .tQuickBtn{width:40px;height:40px;border-radius:10px;background:rgba(18,24,36,0.88);border:1.5px solid rgba(255,255,255,0.32);
+             color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;position:relative;
+             cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(4px);transition:transform .08s,border-color .12s}
+  .tQuickBtn:active{transform:scale(0.92);border-color:#7cff5a}
+  .tQuickBtn .tBadge{position:absolute;bottom:-4px;right:-4px;font-size:9px;font-weight:bold;background:#15331e;
+                     color:#7cff5a;border:1px solid #4caf50;border-radius:8px;padding:0 4px;line-height:1.2}
+
+  /* Botones Principales de Acción Táctil */
+  #touchActions{position:absolute;right:12px;bottom:14px;pointer-events:auto;z-index:10;
+                display:grid;grid-template-columns:repeat(3, 50px);gap:7px;align-items:center;justify-content:center}
+  .tBtn{width:50px;height:50px;border-radius:50%;background:rgba(20,25,35,0.84);border:2px solid rgba(255,255,255,0.35);
+        color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;
+        backdrop-filter:blur(4px);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .08s,border-color .15s}
+  .tBtn:active{transform:scale(0.92)}
+  .tBtn.btnJump{width:56px;height:56px;font-size:24px;background:rgba(46,125,50,0.85);border-color:#81c784;box-shadow:0 0 10px rgba(76,175,80,0.4)}
+  .tBtn.btnMine{width:56px;height:56px;font-size:24px;background:rgba(180,50,50,0.85);border-color:#e57373}
+  .tBtn.btnMine:active,.tBtn.btnMine.activeHold{background:rgba(220,40,40,0.95);border-color:#ff7777;box-shadow:0 0 16px rgba(255,80,80,0.7)}
+  .tBtn.btnPlace{background:rgba(30,100,160,0.85);border-color:#64b5f6}
+  .tBtn.btnPlace:active,.tBtn.btnPlace.activeHold{background:rgba(40,120,200,0.95);border-color:#90caf9;box-shadow:0 0 14px rgba(100,180,255,0.6)}
+  .tBtn.btnCrouch.active{background:rgba(20,80,40,0.92);border-color:#7cff5a;box-shadow:0 0 12px rgba(124,255,90,0.7)}
+  .tBtn.btnSprint.active{background:rgba(180,120,20,0.92);border-color:#ffe14d;box-shadow:0 0 12px rgba(255,225,77,0.7)}
+  .tBtn.btnAction{background:rgba(200,140,20,0.85);border-color:#ffd54f}
+  .tBtn.btnAction.pulsePrompt{animation:tBtnPulse 1.1s infinite}
+  @keyframes tBtnPulse{0%{box-shadow:0 0 4px #ffe14d}50%{box-shadow:0 0 18px #ffe14d, 0 0 26px #ff9800}100%{box-shadow:0 0 4px #ffe14d}}
+
+  /* Resaltado de item enfocado en tienda con mando */
+  .item.shopFocus{background:rgba(76,175,80,0.22)!important;border:1px solid #7cff5a!important;
+                  border-radius:8px;box-shadow:0 0 14px rgba(124,255,90,0.45);padding-left:6px!important;padding-right:6px!important}
+  .gpLegend{font-size:11px;color:#ffe14d;margin-top:10px;text-align:center;letter-spacing:0.5px}
+
+  /* Banner de rotación para móvil */
+  #portraitNotice{display:none;position:fixed;inset:0;background:rgba(10,12,18,0.95);z-index:9999;color:#fff;
+                  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+  #portraitNotice .pIcon{font-size:48px;margin-bottom:14px;animation:rotatePhone 2s infinite ease-in-out}
+  @keyframes rotatePhone{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-90deg)}}
+  @media (orientation: portrait) and (max-width: 768px){
+    body.touchActive #portraitNotice{display:flex}
+  }
   #shop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
         background:rgba(0,0,0,.8);z-index:11;font-family:monospace}
-  #shop .box{background:#12121f;border:4px solid #e8c832;border-radius:14px;padding:24px 34px;
-             min-width:420px;color:#fff;box-shadow:0 0 40px #e8c83255}
+  #shop .box{background:#12121f;border:4px solid #e8c832;border-radius:14px;padding:18px 24px;
+             min-width:0;width:min(92vw, 450px);max-height:92vh;overflow-y:auto;color:#fff;box-shadow:0 0 40px #e8c83255}
   #shop h2{margin:0 0 4px;font-size:18px;color:#e8c832;letter-spacing:2px;text-align:center}
   #shop .sub{text-align:center;color:#9aa;font-size:13px;margin:6px 0 12px}
   #shop .item{display:flex;align-items:center;justify-content:space-between;gap:16px;
@@ -346,68 +389,59 @@
   .hudPill:active{transform:scale(0.95)}
 
   /* Disposición Adaptable y Táctil Anti-Solapamientos (Mobile & Tablet) */
-  body.touchActive #mini{
-    left:auto!important;right:12px!important;top:10px!important;bottom:auto!important;
-    width:96px!important;height:96px!important;border-color:#8fd0ef!important;
-    box-shadow:0 4px 14px rgba(0,0,0,0.7)!important;z-index:8!important;
+  body.touchActive #stats{
+    top:8px!important;left:8px!important;font-size:11px!important;line-height:1.32!important;
+    max-width:210px!important;background:rgba(10,14,22,0.80)!important;
+    border:1px solid rgba(143,208,239,0.3)!important;border-radius:8px!important;
+    padding:6px 9px!important;backdrop-filter:blur(4px)!important;z-index:7!important;
   }
   body.touchActive #coords{
-    top:110px!important;right:12px!important;font-size:11px!important;
-    line-height:1.3!important;z-index:8!important;text-shadow:1px 1px 2px #000;
+    top:auto!important;bottom:64px!important;left:8px!important;right:auto!important;
+    font-size:10px!important;line-height:1.25!important;z-index:7!important;
+    background:rgba(10,14,22,0.65)!important;padding:4px 8px!important;border-radius:6px!important;
+    border:1px solid rgba(255,255,255,0.15)!important;text-shadow:1px 1px 2px #000;pointer-events:none!important;
+  }
+  body.touchActive #mini{
+    left:auto!important;right:10px!important;top:8px!important;bottom:auto!important;
+    width:80px!important;height:80px!important;border-color:#8fd0ef!important;
+    box-shadow:0 4px 14px rgba(0,0,0,0.7)!important;z-index:8!important;
   }
   body.touchActive #questBox{
-    top:132px!important;right:12px!important;max-width:170px!important;
-    padding:4px 8px!important;font-size:10px!important;line-height:1.3!important;z-index:8!important;
+    top:94px!important;right:10px!important;max-width:150px!important;
+    padding:4px 8px!important;font-size:10px!important;line-height:1.25!important;z-index:8!important;
+    background:rgba(10,14,22,0.7)!important;border:1px solid rgba(255,225,77,0.35)!important;border-radius:6px!important;
   }
   body.touchActive #questBox .qtitle{font-size:10px!important}
   body.touchActive #questBox .qdesc{
     margin-top:1px!important;white-space:nowrap!important;
-    overflow:hidden!important;text-overflow:ellipsis!important;max-width:154px!important;
-  }
-  body.touchActive #stats{
-    top:8px!important;left:8px!important;font-size:11px!important;line-height:1.35!important;
-    max-width:246px!important;background:rgba(10,14,22,0.75)!important;
-    border:1px solid rgba(143,208,239,0.3)!important;border-radius:8px!important;
-    padding:6px 10px!important;backdrop-filter:blur(4px)!important;z-index:7!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;max-width:134px!important;
   }
   body.touchActive #hudBtnBar{
-    right:116px!important;top:10px!important;
+    right:98px!important;top:8px!important;gap:4px!important;
   }
   body.touchActive .hudTopBtn{
     font-size:10px!important;padding:4px 7px!important;
   }
-  body.touchActive #touchJoyArea{
-    left:14px!important;bottom:14px!important;width:114px!important;height:114px!important;
-  }
-  body.touchActive #touchJoyKnob{
-    width:44px!important;height:44px!important;
-  }
-  body.touchActive #touchButtons{
-    right:12px!important;bottom:12px!important;grid-template-columns:repeat(3,44px)!important;gap:6px!important;
-  }
-  body.touchActive .tBtn{
-    width:44px!important;height:44px!important;font-size:18px!important;
-  }
   body.touchActive #hotbar{
-    bottom:6px!important;gap:3px!important;padding:4px 6px!important;
+    bottom:6px!important;gap:4px!important;padding:4px 6px!important;z-index:8!important;
   }
   body.touchActive #hotbar .slot{
-    width:32px!important;height:32px!important;border-radius:6px!important;
+    width:36px!important;height:36px!important;border-radius:7px!important;
   }
   body.touchActive #hotbar .swatch{
-    width:16px!important;height:16px!important;
+    width:18px!important;height:18px!important;
   }
   body.touchActive #hotbar .name{
     display:none!important;
   }
   body.touchActive #hotbar .key{
-    font-size:8px!important;
+    font-size:9px!important;
   }
   body.touchActive #hotbar .count{
-    font-size:10px!important;
+    font-size:11px!important;bottom:1px!important;right:3px!important;
   }
   body.touchActive #staminaWrap{
-    bottom:48px!important;width:170px!important;height:7px!important;
+    bottom:52px!important;width:170px!important;height:7px!important;
   }
 </style>
 </head>
@@ -428,6 +462,7 @@
   <div id="msg"></div>
   <div id="prompt"></div>
   <div id="hudBtnBar">
+    <button id="btnHudPause" class="hudTopBtn" type="button" title="Pausar juego (Esc / Start)">⏸️ Pausa</button>
     <button id="btnHudHotkeys" class="hudTopBtn" type="button" title="Personalizar atajos y objetos (K)">⚙️ Atajos</button>
     <button id="musicToggle" class="hudTopBtn" type="button">♫ Música: ON (M · N sig)</button>
   </div>
@@ -456,18 +491,29 @@
 </div>
 
 <div id="touchControls">
+  <div id="touchJoyZone"></div>
   <div id="touchJoyArea"><div id="touchJoyKnob"></div></div>
-  <div id="touchButtons">
-    <button type="button" class="tBtn" id="tBtnSmoke" title="Bomba de Humo (G)">💨</button>
-    <button type="button" class="tBtn btnJump" id="tBtnJump" title="Saltar (Espacio)">⏫</button>
-    <button type="button" class="tBtn" id="tBtnTorch" title="Antorcha (T)">🕯️</button>
-    <button type="button" class="tBtn btnMine" id="tBtnMine" title="Picar (Clic Izq)">⛏️</button>
-    <button type="button" class="tBtn" id="tBtnCrouch" title="Sigilo (C)">🕶️</button>
-    <button type="button" class="tBtn btnPlace" id="tBtnPlace" title="Colocar (Clic Der)">🧱</button>
-    <button type="button" class="tBtn" id="tBtnCoffee" title="Café (V)">☕</button>
-    <button type="button" class="tBtn btnAction" id="tBtnInteract" title="Interactuar (E)">💬</button>
-    <button type="button" class="tBtn" id="tBtnClock" title="Reloj (R)">⏱️</button>
+  <div id="touchQuickBar">
+    <button type="button" class="tQuickBtn" id="tQuickCoffee" title="Café Energético">☕<span class="tBadge" id="tBadgeCoffee">0</span></button>
+    <button type="button" class="tQuickBtn" id="tQuickClock" title="Reloj Congelador">⏱️<span class="tBadge" id="tBadgeClock">0</span></button>
+    <button type="button" class="tQuickBtn" id="tQuickBanana" title="Cáscara de Plátano">🍌<span class="tBadge" id="tBadgeBanana">0</span></button>
+    <button type="button" class="tQuickBtn" id="tQuickSmoke" title="Bomba de Humo">💨<span class="tBadge" id="tBadgeSmoke">0</span></button>
+    <button type="button" class="tQuickBtn" id="tQuickEraser" title="Lanzar Borrador">✏️</button>
+    <button type="button" class="tQuickBtn" id="tQuickTorch" title="Antorcha">🕯️<span class="tBadge" id="tBadgeTorch">0</span></button>
   </div>
+  <div id="touchActions">
+    <button type="button" class="tBtn btnCrouch" id="tBtnCrouch" title="Sigilo / Agacharse">🕶️</button>
+    <button type="button" class="tBtn btnJump" id="tBtnJump" title="Saltar">⏫</button>
+    <button type="button" class="tBtn btnSprint" id="tBtnSprint" title="Correr / Sprint">🏃</button>
+    <button type="button" class="tBtn btnPlace" id="tBtnPlace" title="Colocar Bloque (Mantén)">🧱</button>
+    <button type="button" class="tBtn btnMine" id="tBtnMine" title="Picar Bloque (Mantén)">⛏️</button>
+    <button type="button" class="tBtn btnAction" id="tBtnInteract" title="Interactuar / Hablar / Cofre">💬</button>
+  </div>
+</div>
+<div id="portraitNotice">
+  <div class="pIcon">📱</div>
+  <div style="font-size:18px;font-weight:bold;color:#4caf50;margin-bottom:8px">GIRA TU DISPOSITIVO</div>
+  <div style="font-size:13px;color:#aaa;max-width:280px;line-height:1.5">Para jugar cómodamente con los controles táctiles y ver todo el mundo, usa la pantalla en horizontal.</div>
 </div>
 
 <div id="wrongAlert">
@@ -1679,6 +1725,14 @@ HOTBAR_BLOCKS.forEach((bId, i) => {
     <div class="swatch" style="background:${b.color}"></div>
     <div class="count">0</div>
     <div class="name">${b.name}</div>`;
+  const handleSelectSlot = (e) => {
+    e.stopPropagation();
+    selected = i;
+    updateHotbar();
+    sfx([50 + i * 3], 'sine', 0.02, 0.03);
+  };
+  slot.addEventListener('click', handleSelectSlot);
+  slot.addEventListener('touchstart', handleSelectSlot, { passive: true });
   hotbarEl.appendChild(slot);
 });
 
@@ -1842,6 +1896,10 @@ const player = {
   gpMoveZ: 0,
   gpCrouch: false,
   gpSprint: false,
+  touchMoveX: 0,
+  touchMoveZ: 0,
+  touchSprint: false,
+  touchCrouch: false,
 };
 
 const PICKAXES = [
@@ -2305,7 +2363,8 @@ document.addEventListener('mousemove', e => {
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
-  if (!pointerLocked && !gpConnected) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
+  const isTouchActive = document.body.classList.contains('touchActive');
+  if (!pointerLocked && !gpConnected && !isTouchActive) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
 });
 
 /* ---------- Menú de pausa (Esc) ---------- */
@@ -2544,11 +2603,16 @@ function updatePlayer(dt) {
     wx += rx * stickX - fx * stickZ;
     wz += rz * stickX - fz * stickZ;
   }
-  const len = Math.hypot(wx, wz);
+  const rawInputLen = Math.hypot(wx, wz);
+  const len = rawInputLen;
   if (len > 0) { wx /= len; wz /= len; }
 
-  // ----- Sigilo / Agacharse (Tecla C, Ctrl o Mando LB/LT) -----
-  const wantsCrouch = !!(keys['KeyC'] || keys['ControlLeft'] || keys['ControlRight'] || player.gpCrouch);
+  // Magnitud analógica para mando y joystick táctil (permite caminar despacio o correr)
+  const isKbMove = !!(keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']);
+  const analogMag = isKbMove ? 1.0 : Math.min(1.0, Math.hypot(stickX, stickZ));
+
+  // ----- Sigilo / Agacharse (Tecla C, Ctrl, Mando LB/LT o Botón Táctil) -----
+  const wantsCrouch = !!(keys['KeyC'] || keys['ControlLeft'] || keys['ControlRight'] || player.gpCrouch || player.touchCrouch);
   if (wantsCrouch) {
     player.crouching = true;
   } else if (player.crouching) {
@@ -2564,7 +2628,7 @@ function updatePlayer(dt) {
   if (stealthPillEl) stealthPillEl.style.display = player.crouching ? 'block' : 'none';
 
   // ----- Correr + stamina -----
-  const wantsSprint = !!(keys['ShiftLeft'] || keys['ShiftRight'] || player.gpSprint) &&
+  const wantsSprint = !!(keys['ShiftLeft'] || keys['ShiftRight'] || player.gpSprint || player.touchSprint) &&
                       (keys['KeyW'] || Math.hypot(stickX, stickZ) > 0.3) &&
                       len > 0 && !player.crouching;
   player.sprinting = wantsSprint && !player.exhausted && player.stamina > 0;
@@ -2599,8 +2663,9 @@ function updatePlayer(dt) {
   const onSnow = (floorBlk === B_SNOW);
   const snowF = (onSnow && !player.crouching && (player.jumpMult || 1) <= 1) ? 0.82 : 1.0;
   const spd = SPEED * (player.sprinting ? SPRINT_MULT : 1) * (wet ? 0.65 : 1) * slowF * coffeeBoost * crouchF * snowF;
-  player.vel.x = wx * spd;
-  player.vel.z = wz * spd;
+  const effectiveSpd = spd * (analogMag > 0 ? analogMag : 1.0);
+  player.vel.x = wx * effectiveSpd;
+  player.vel.z = wz * effectiveSpd;
 
   if (player.crouching && len > 0 && (player.onGround || wet)) {
     player.crouchDist = (player.crouchDist || 0) + spd * dt;
@@ -3592,6 +3657,7 @@ function showBigWrong(num, sub = '¡El Profesor se ha enfurecido!') {
 }
 
 function updateStats() {
+  if (typeof updateTouchBadges === 'function') updateTouchBadges();
   const invPills = (userHotkeys.length ? userHotkeys : DEFAULT_HOTKEYS).map(hk => {
     const k = formatKeyCode(hk.key);
     if (hk.id === 'coffee' && player.itemCoffee > 0) {
@@ -3828,6 +3894,10 @@ function openQuiz(nb) {
   if (qh2) qh2.textContent = 'CUADERNO DE MATEMÁTICAS';
 
   showQuestion(makeQuestion(player.level));
+  const hintEl = document.querySelector('#quiz .hint');
+  if (hintEl && gpConnected) {
+    hintEl.innerHTML = 'Resuelve y confirma &nbsp;·&nbsp; <span style="color:#ffe14d">🎮 [D-Pad] Navegar &nbsp;[A] Número &nbsp;[B/LB] Borrar &nbsp;[X] Signo - &nbsp;[Y/RB/Start] Enviar</span>';
+  }
 }
 
 // Cuadernos correctos para pasar de nivel (nivel 1: 6, nivel 5: 10, nivel 10: 15)
@@ -4811,6 +4881,17 @@ const shopPrice = it => {
   return Math.max(5, Math.round(raw));
 };
 
+let shopFocusIdx = 0;
+function updateShopFocus() {
+  if (!shopList) return;
+  const items = shopList.children;
+  for (let i = 0; i < items.length; i++) {
+    const isFocus = (i === shopFocusIdx);
+    items[i].classList.toggle('shopFocus', isFocus);
+    if (isFocus) items[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
 function renderShop(info) {
   const discount = getStreakDiscount();
   const discPct = Math.round(discount * 100);
@@ -4821,21 +4902,24 @@ function renderShop(info) {
   document.getElementById('shopPts').innerHTML =
     `Tus puntos: <b>${player.score}</b>${streakTxt} &nbsp;·&nbsp; Precios x${shopMult.toFixed(2)}`;
   shopList.innerHTML = '';
-  for (const it of SHOP) {
+  for (let i = 0; i < SHOP.length; i++) {
+    const it = SHOP[i];
     const price = shopPrice(it);
     const row = document.createElement('div');
-    row.className = 'item';
+    row.className = 'item' + (i === shopFocusIdx ? ' shopFocus' : '');
     row.innerHTML = `<div>${it.name}<small>${it.desc}</small></div>`;
     const btn = document.createElement('button');
     btn.textContent = `${price} pts`;
     btn.disabled = player.score < price;
-    btn.onclick = () => buy(it);
+    btn.onclick = () => { shopFocusIdx = i; buy(it); };
     row.appendChild(btn);
     shopList.appendChild(row);
   }
-  shopInfo.textContent = info || (discount > 0
+  shopInfo.innerHTML = (info || (discount > 0
     ? `¡Don Cálculo te ofrece un -${discPct}% de descuento por tu racha matemática de ${player.streak}!`
-    : 'Para comprar debes resolver una pregunta. Si fallas, los precios suben.');
+    : 'Para comprar debes resolver una pregunta. Si fallas, los precios suben.')) +
+    (gpConnected ? '<div class="gpLegend">🎮 [D-Pad ▲/▼] Elegir &nbsp;·&nbsp; [A] Comprar &nbsp;·&nbsp; [B / Start] Salir</div>' : '');
+  updateShopFocus();
 }
 
 function openShop() {
@@ -5339,12 +5423,25 @@ function openBriefcase(b) {
   }, '💎 CERRADURA DEL COFRE SECRETO');
 }
 
+function getNearNotebook(radius = 2.4) {
+  for (const nb of notebooks) {
+    if (!nb.mesh || !nb.mesh.visible) continue;
+    const d = Math.hypot(nb.mesh.position.x - player.pos.x, nb.mesh.position.z - player.pos.z);
+    if (d <= radius) return nb;
+  }
+  return null;
+}
+
 function interactAction() {
   if (paused) return;
   if (nearMerchant()) openShop();
   else {
     const nearCase = getNearBriefcase();
     if (nearCase) openBriefcase(nearCase);
+    else {
+      const nearNb = getNearNotebook(2.5);
+      if (nearNb) openQuiz(nearNb);
+    }
   }
 }
 
@@ -6256,7 +6353,7 @@ function updateVignette() {
 }
 
 /* ============================================================
-   SISTEMA DE CONTROL / GAMEPAD (Windows, Consolas, Android, Web)
+   SISTEMA DE CONTROL / GAMEPAD MEJORADO (Windows, Android, Consolas, Web)
    ============================================================ */
 let lastGpButtons = [];
 let gpBreakTimer = 0;
@@ -6267,6 +6364,7 @@ let lastGpStickNavY = false;
 
 window.addEventListener('gamepadconnected', () => {
   gpConnected = true;
+  showMsg('🎮 Control conectado', '#7cff5a', 2000);
   updateStats();
 });
 window.addEventListener('gamepaddisconnected', () => {
@@ -6302,7 +6400,7 @@ function updateGamepad(dt) {
   }
   gpConnected = true;
 
-  const btn = (i) => gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5);
+  const btn = (i) => gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.45);
   const btnJustDown = (i) => btn(i) && !lastGpButtons[i];
 
   // 1. Pantalla de Inicio / Game Over
@@ -6314,85 +6412,127 @@ function updateGamepad(dt) {
       if (btnJustDown(14)) cycleDifficulty(-1);
       if (btnJustDown(15)) cycleDifficulty(1);
     }
-    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
     return;
   }
 
-  // 2. Menú de Pausa
+  // 2. Modal de Atajos
+  if (hotkeysModalOpen) {
+    if (btnJustDown(1) || btnJustDown(9) || btnJustDown(8)) {
+      closeHotkeysModal();
+    }
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
+    return;
+  }
+
+  // 3. Menú de Pausa
   if (pauseEl && pauseEl.style.display === 'flex') {
     if (btnJustDown(9) || btnJustDown(0) || btnJustDown(1)) {
       if (performance.now() - pausedAt > 200) resumeGame();
     }
-    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
     return;
   }
 
-  // 3. Tienda Don Cálculo
+  // 4. Tienda Don Cálculo (Navegación 100% Completa por Mando)
   if (shopEl && shopEl.style.display === 'flex') {
+    gpNavTimer -= dt;
+    const ax1 = Math.abs(gp.axes[1] || 0) > 0.45 ? (gp.axes[1] > 0 ? 1 : -1) : 0;
+    if (gpNavTimer <= 0) {
+      if (btnJustDown(12) || (ax1 < 0 && !lastGpStickNavY)) {
+        shopFocusIdx = (shopFocusIdx - 1 + SHOP.length) % SHOP.length;
+        updateShopFocus();
+        sfx([55], 'sine', 0.02, 0.03);
+        gpNavTimer = 0.20;
+      } else if (btnJustDown(13) || (ax1 > 0 && !lastGpStickNavY)) {
+        shopFocusIdx = (shopFocusIdx + 1) % SHOP.length;
+        updateShopFocus();
+        sfx([50], 'sine', 0.02, 0.03);
+        gpNavTimer = 0.20;
+      }
+    }
+    lastGpStickNavY = ax1 !== 0;
+
+    // Botón A: Comprar item seleccionado
+    if (btnJustDown(0)) {
+      if (SHOP[shopFocusIdx]) buy(SHOP[shopFocusIdx]);
+    }
+    // Botón B o Start: Cerrar tienda
     if (btnJustDown(1) || btnJustDown(9)) {
       closeShop();
     }
-    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
     return;
   }
 
-  // 4. Cuaderno Matemático / Preguntas (Quiz NumPad)
+  // 5. Cuaderno Matemático / Preguntas (Quiz NumPad)
   if (quizEl && quizEl.style.display === 'flex') {
     gpNavTimer -= dt;
     const ax0 = Math.abs(gp.axes[0] || 0) > 0.45 ? (gp.axes[0] > 0 ? 1 : -1) : 0;
     const ax1 = Math.abs(gp.axes[1] || 0) > 0.45 ? (gp.axes[1] > 0 ? 1 : -1) : 0;
 
     if (gpNavTimer <= 0) {
-      if (btnJustDown(14) || (ax0 < 0 && !lastGpStickNavX)) { navigatePad('ArrowLeft'); gpNavTimer = 0.22; }
-      else if (btnJustDown(15) || (ax0 > 0 && !lastGpStickNavX)) { navigatePad('ArrowRight'); gpNavTimer = 0.22; }
-      else if (btnJustDown(12) || (ax1 < 0 && !lastGpStickNavY)) { navigatePad('ArrowUp'); gpNavTimer = 0.22; }
-      else if (btnJustDown(13) || (ax1 > 0 && !lastGpStickNavY)) { navigatePad('ArrowDown'); gpNavTimer = 0.22; }
+      if (btnJustDown(14) || (ax0 < 0 && !lastGpStickNavX)) { navigatePad('ArrowLeft'); gpNavTimer = 0.18; }
+      else if (btnJustDown(15) || (ax0 > 0 && !lastGpStickNavX)) { navigatePad('ArrowRight'); gpNavTimer = 0.18; }
+      else if (btnJustDown(12) || (ax1 < 0 && !lastGpStickNavY)) { navigatePad('ArrowUp'); gpNavTimer = 0.18; }
+      else if (btnJustDown(13) || (ax1 > 0 && !lastGpStickNavY)) { navigatePad('ArrowDown'); gpNavTimer = 0.18; }
     }
     lastGpStickNavX = ax0 !== 0;
     lastGpStickNavY = ax1 !== 0;
 
-    if (btnJustDown(0)) {
-      handlePadInput(PAD_BUTTONS[padFocusIdx]);
-    }
-    if (btnJustDown(1)) {
-      handlePadInput('del');
-    }
-    if (btnJustDown(2)) {
-      handlePadInput('-');
-    }
-    if (btnJustDown(3) || btnJustDown(9)) {
-      submitAnswer();
-    }
+    if (btnJustDown(0)) handlePadInput(PAD_BUTTONS[padFocusIdx]); // Botón A: Seleccionar
+    if (btnJustDown(1) || btnJustDown(4)) handlePadInput('del');   // Botón B o LB: Borrar
+    if (btnJustDown(2)) handlePadInput('-');                      // Botón X: Signo negativo
+    if (btnJustDown(3) || btnJustDown(5) || btnJustDown(9)) submitAnswer(); // Botón Y, RB o Start: Enviar
 
-    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
     return;
   }
 
-  // 5. JUEGO ACTIVO (!paused)
-  if (btnJustDown(9) || btnJustDown(8)) {
+  // 6. JUEGO ACTIVO (!paused)
+  // Pausar con Start (botón 9)
+  if (btnJustDown(9)) {
     pauseGame();
-    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+    lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
     return;
   }
 
-  // Movimiento: Palanca Izquierda (axes[0], axes[1])
-  const deadzone = 0.16;
-  const rawX = gp.axes[0] || 0;
-  const rawY = gp.axes[1] || 0;
-  player.gpMoveX = Math.abs(rawX) > deadzone ? rawX : 0;
-  player.gpMoveZ = Math.abs(rawY) > deadzone ? rawY : 0;
+  // Movimiento Analógico Suave: Palanca Izquierda (axes[0], axes[1])
+  const deadzoneMove = 0.14;
+  const rawMoveX = gp.axes[0] || 0;
+  const rawMoveY = gp.axes[1] || 0;
+  const moveLen = Math.hypot(rawMoveX, rawMoveY);
+  if (moveLen > deadzoneMove) {
+    const norm = Math.min(1.0, (moveLen - deadzoneMove) / (1.0 - deadzoneMove));
+    player.gpMoveX = (rawMoveX / moveLen) * norm;
+    player.gpMoveZ = (rawMoveY / moveLen) * norm;
+  } else {
+    player.gpMoveX = 0;
+    player.gpMoveZ = 0;
+  }
 
-  // Cámara / Vista: Palanca Derecha (axes[2], axes[3])
+  // Auto-sprint en mando al empujar la palanca a tope hacia adelante (> 84%) o pulsar L3 (10)
+  const stickPushSprint = moveLen > 0.84 && rawMoveY < -0.35 && !player.crouching;
+  player.gpSprint = btn(10) || stickPushSprint;
+
+  // Cámara / Vista Fluida: Palanca Derecha (axes[2], axes[3] con fallback Android eje 5)
   if (!player.inJumpscare) {
-    const camX = gp.axes[2] || 0;
-    const camY = gp.axes[3] || 0;
-    if (Math.abs(camX) > deadzone) {
-      const sensX = 2.8;
-      yaw -= camX * Math.abs(camX) * sensX * dt;
+    const deadzoneCam = 0.12;
+    let rawCamX = (typeof gp.axes[2] === 'number') ? gp.axes[2] : 0;
+    let rawCamY = (typeof gp.axes[3] === 'number') ? gp.axes[3] : 0;
+    // Soporte para mandos Bluetooth en Android que mapean el eje vertical derecho en eje 5
+    if (Math.abs(rawCamY) < 0.05 && typeof gp.axes[5] === 'number' && Math.abs(gp.axes[5]) > 0.05) {
+      rawCamY = gp.axes[5];
     }
-    if (Math.abs(camY) > deadzone) {
-      const sensY = 2.4;
-      pitch -= camY * Math.abs(camY) * sensY * dt;
+    const camLen = Math.hypot(rawCamX, rawCamY);
+    if (camLen > deadzoneCam) {
+      const norm = Math.min(1.0, (camLen - deadzoneCam) / (1.0 - deadzoneCam));
+      // Curva exponencial suave (1.4): precisión en ángulos pequeños y giro rápido al borde
+      const curved = Math.pow(norm, 1.4);
+      const sensX = 4.4;
+      const sensY = 3.6;
+      yaw -= (rawCamX / camLen) * curved * sensX * dt;
+      pitch -= (rawCamY / camLen) * curved * sensY * dt;
       const lim = Math.PI / 2 - 0.02;
       pitch = Math.max(-lim, Math.min(lim, pitch));
     }
@@ -6404,9 +6544,6 @@ function updateGamepad(dt) {
   // Agacharse / Sigilo: LB (4) o LT (6)
   player.gpCrouch = btn(4) || btn(6);
 
-  // Correr: L3 (10)
-  player.gpSprint = btn(10);
-
   // Mirar atrás: R3 (11)
   keys['KeyQ'] = btn(11) || !!keys['_kbKeyQ'];
 
@@ -6416,7 +6553,7 @@ function updateGamepad(dt) {
   // Trampa de plátano: Botón B (1)
   if (btnJustDown(1)) placeBanana();
 
-  // Interactuar (Tienda Don Cálculo, Maletines): Botón Y (3)
+  // Interactuar (Don Cálculo, Cofres, Cuadernos): Botón Y (3)
   if (btnJustDown(3)) interactAction();
 
   // Consumibles D-pad:
@@ -6437,11 +6574,17 @@ function updateGamepad(dt) {
     sfx([52, 59], 'sine', 0.02, 0.03);
   }
 
+  // Bomba de humo o Antorcha: Botón Select / Back (8)
+  if (btnJustDown(8)) {
+    if ((player.itemSmoke || 0) > 0) throwSmoke();
+    else if ((player.itemTorches || 0) > 0) placeTorch();
+  }
+
   // Minar / Romper bloque: RT (Gatillo derecho, botón 7)
   if (btn(7)) {
     if (btnJustDown(7)) {
       breakBlockAction();
-      gpBreakTimer = 0.28;
+      gpBreakTimer = 0.24;
     } else {
       gpBreakTimer -= dt;
       if (gpBreakTimer <= 0) {
@@ -6457,7 +6600,7 @@ function updateGamepad(dt) {
   if (btn(5)) {
     if (btnJustDown(5)) {
       placeBlockAction();
-      gpPlaceTimer = 0.30;
+      gpPlaceTimer = 0.26;
     } else {
       gpPlaceTimer -= dt;
       if (gpPlaceTimer <= 0) {
@@ -6469,12 +6612,38 @@ function updateGamepad(dt) {
     gpPlaceTimer = 0;
   }
 
-  lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.5) : false);
+  lastGpButtons = gp.buttons.map(b => b ? (b.pressed || b.value > 0.45) : false);
 }
 
 /* ============================================================
-   CONTROLES TÁCTILES VIRTUALES (Mobile, Tablets y Pantallas Táctiles)
+   CONTROLES TÁCTILES VIRTUALES COMPLETOS (Mobile, Tablets y Pantallas Táctiles)
    ============================================================ */
+let touchSprintLocked = false;
+let touchMineInterval = null;
+let touchPlaceInterval = null;
+
+function updateTouchBadges() {
+  const bC = document.getElementById('tBadgeCoffee');
+  const bK = document.getElementById('tBadgeClock');
+  const bB = document.getElementById('tBadgeBanana');
+  const bS = document.getElementById('tBadgeSmoke');
+  const bT = document.getElementById('tBadgeTorch');
+  if (bC) bC.textContent = player.itemCoffee || 0;
+  if (bK) bK.textContent = player.itemClock || 0;
+  if (bB) bB.textContent = player.itemBanana || 0;
+  if (bS) bS.textContent = player.itemSmoke || 0;
+  if (bT) bT.textContent = player.itemTorches || 0;
+
+  // Resaltado de botón interactuar si hay algo cerca
+  const btnAct = document.getElementById('tBtnInteract');
+  if (btnAct) {
+    const hasPrompt = (nearMerchant && nearMerchant()) ||
+                      (getNearBriefcase && getNearBriefcase()) ||
+                      (getNearNotebook && getNearNotebook(2.5));
+    btnAct.classList.toggle('pulsePrompt', !!hasPrompt);
+  }
+}
+
 function initTouchControls() {
   const isTouchDevice = ('ontouchstart' in window) ||
                         (navigator.maxTouchPoints > 0) ||
@@ -6488,36 +6657,54 @@ function initTouchControls() {
     touchEl.style.display = 'block';
   }
 
-  // Activar layout táctil en el primer toque de pantalla (útil para dispositivos híbridos)
+  // Activar layout táctil en el primer toque de pantalla
   window.addEventListener('touchstart', function enableTouchLayout() {
     document.body.classList.add('touchActive');
     if (touchEl) touchEl.style.display = 'block';
-    renderTouchButtons();
+    updateTouchBadges();
   }, { once: true, passive: true });
 
-  // Virtual Joystick
+  // Joystick Dinámico Flotante en la zona izquierda
+  const joyZone = document.getElementById('touchJoyZone');
   const joyArea = document.getElementById('touchJoyArea');
   const joyKnob = document.getElementById('touchJoyKnob');
   let joyTouchId = null;
   let joyCenter = { x: 0, y: 0 };
-  const joyMaxRadius = 44;
+  const joyMaxRadius = 48;
 
   function resetJoy() {
     joyTouchId = null;
-    joyKnob.style.transform = 'translate(0px, 0px)';
+    if (joyKnob) {
+      joyKnob.style.transform = 'translate(0px, 0px)';
+      joyKnob.textContent = '';
+    }
+    if (joyArea) {
+      joyArea.classList.remove('sprinting');
+      joyArea.style.left = '28px';
+      joyArea.style.bottom = '28px';
+      joyArea.style.top = 'auto';
+      joyArea.style.transform = 'none';
+    }
     player.touchMoveX = 0;
     player.touchMoveZ = 0;
+    if (!touchSprintLocked) player.touchSprint = false;
   }
 
-  joyArea.addEventListener('touchstart', e => {
-    e.preventDefault();
-    if (joyTouchId !== null) return;
-    const touch = e.changedTouches[0];
-    joyTouchId = touch.identifier;
-    const rect = joyArea.getBoundingClientRect();
-    joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    handleJoyMove(touch.clientX, touch.clientY);
-  }, { passive: false });
+  if (joyZone) {
+    joyZone.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (joyTouchId !== null || paused || player.inJumpscare) return;
+      const touch = e.changedTouches[0];
+      joyTouchId = touch.identifier;
+      joyCenter = { x: touch.clientX, y: touch.clientY };
+
+      // Centrar base del joystick donde el usuario tocó
+      joyArea.style.left = (joyCenter.x - 63) + 'px';
+      joyArea.style.top = (joyCenter.y - 63) + 'px';
+      joyArea.style.bottom = 'auto';
+      handleJoyMove(touch.clientX, touch.clientY);
+    }, { passive: false });
+  }
 
   function handleJoyMove(cx, cy) {
     const dx = cx - joyCenter.x;
@@ -6529,9 +6716,14 @@ function initTouchControls() {
     const ky = Math.sin(angle) * clampedDist;
 
     joyKnob.style.transform = `translate(${kx}px, ${ky}px)`;
-    // Normalizar a rango -1.0 .. 1.0 (ky negativo = avanzar)
     player.touchMoveX = kx / joyMaxRadius;
     player.touchMoveZ = ky / joyMaxRadius;
+
+    // Auto-sprint táctil al empujar el joystick al 78% o más hacia adelante
+    const isSprintPush = (dist >= joyMaxRadius * 0.78) && (ky < -12) && !player.crouching;
+    player.touchSprint = isSprintPush || touchSprintLocked;
+    joyArea.classList.toggle('sprinting', player.touchSprint);
+    joyKnob.textContent = player.touchSprint ? '🏃' : '';
   }
 
   window.addEventListener('touchmove', e => {
@@ -6556,7 +6748,7 @@ function initTouchControls() {
   });
   window.addEventListener('touchcancel', () => resetJoy());
 
-  // Rotación de cámara táctil (arrastrando con otro dedo en la pantalla)
+  // Rotación de Cámara Táctil Fluida (con sensibilidad calibrada y multi-toque)
   let lookTouchId = null;
   let lastLookX = 0, lastLookY = 0;
 
@@ -6565,8 +6757,12 @@ function initTouchControls() {
     for (let i = 0; i < e.changedTouches.length; i++) {
       const t = e.changedTouches[i];
       if (t.identifier !== joyTouchId &&
+          !t.target.closest('#touchJoyZone') &&
           !t.target.closest('#touchJoyArea') &&
-          !t.target.closest('#touchButtons') &&
+          !t.target.closest('#touchActions') &&
+          !t.target.closest('#touchQuickBar') &&
+          !t.target.closest('#hotbar') &&
+          !t.target.closest('#hudBtnBar') &&
           !t.target.closest('#shop') &&
           !t.target.closest('#quiz') &&
           !t.target.closest('#hotkeysModal')) {
@@ -6587,8 +6783,10 @@ function initTouchControls() {
         const dy = t.clientY - lastLookY;
         lastLookX = t.clientX;
         lastLookY = t.clientY;
-        yaw -= dx * 0.005;
-        pitch -= dy * 0.005;
+
+        // Sensibilidad calibrada (0.0088 rad/px): rápida para escapar y precisa para apuntar
+        yaw -= dx * 0.0088;
+        pitch -= dy * 0.0078;
         const lim = Math.PI / 2 - 0.02;
         pitch = Math.max(-lim, Math.min(lim, pitch));
         break;
@@ -6606,8 +6804,103 @@ function initTouchControls() {
     }
   });
 
-  // Renderizar botones de acción táctiles según el orden configurado por el usuario
-  renderTouchButtons();
+  // Vincular Acciones Primarias: Salto, Picar (auto-repeat), Colocar (auto-repeat), Sigilo, Sprint, Interactuar
+  const btnJump = document.getElementById('tBtnJump');
+  bindTouchBtnElement(btnJump, () => { keys['Space'] = true; }, () => { keys['Space'] = false; });
+
+  const btnMine = document.getElementById('tBtnMine');
+  if (btnMine) {
+    const startMine = () => {
+      btnMine.classList.add('activeHold');
+      breakBlockAction();
+      if (touchMineInterval) clearInterval(touchMineInterval);
+      touchMineInterval = setInterval(() => {
+        if (!paused && !player.inJumpscare) breakBlockAction();
+      }, 190);
+    };
+    const stopMine = () => {
+      btnMine.classList.remove('activeHold');
+      if (touchMineInterval) { clearInterval(touchMineInterval); touchMineInterval = null; }
+    };
+    bindTouchBtnElement(btnMine, startMine, stopMine);
+  }
+
+  const btnPlace = document.getElementById('tBtnPlace');
+  if (btnPlace) {
+    const startPlace = () => {
+      btnPlace.classList.add('activeHold');
+      placeBlockAction();
+      if (touchPlaceInterval) clearInterval(touchPlaceInterval);
+      touchPlaceInterval = setInterval(() => {
+        if (!paused && !player.inJumpscare) placeBlockAction();
+      }, 220);
+    };
+    const stopPlace = () => {
+      btnPlace.classList.remove('activeHold');
+      if (touchPlaceInterval) { clearInterval(touchPlaceInterval); touchPlaceInterval = null; }
+    };
+    bindTouchBtnElement(btnPlace, startPlace, stopPlace);
+  }
+
+  const btnCrouch = document.getElementById('tBtnCrouch');
+  if (btnCrouch) {
+    btnCrouch.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      player.touchCrouch = !player.touchCrouch;
+      btnCrouch.classList.toggle('active', player.touchCrouch);
+      sfx([42], 'sine', 0.02, 0.02);
+    });
+  }
+
+  const btnSprint = document.getElementById('tBtnSprint');
+  if (btnSprint) {
+    btnSprint.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      touchSprintLocked = !touchSprintLocked;
+      player.touchSprint = touchSprintLocked;
+      btnSprint.classList.toggle('active', touchSprintLocked);
+      sfx([60], 'triangle', 0.02, 0.03);
+    });
+  }
+
+  const btnInteract = document.getElementById('tBtnInteract');
+  if (btnInteract) {
+    btnInteract.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      interactAction();
+    });
+  }
+
+  // Vincular Barra de Consumibles y Herramientas Rápidas
+  const qCoffee = document.getElementById('tQuickCoffee');
+  if (qCoffee) qCoffee.onclick = () => { useCoffee(); updateTouchBadges(); };
+
+  const qClock = document.getElementById('tQuickClock');
+  if (qClock) qClock.onclick = () => { useClock(); updateTouchBadges(); };
+
+  const qBanana = document.getElementById('tQuickBanana');
+  if (qBanana) qBanana.onclick = () => { placeBanana(); updateTouchBadges(); };
+
+  const qSmoke = document.getElementById('tQuickSmoke');
+  if (qSmoke) qSmoke.onclick = () => { throwSmoke(); updateTouchBadges(); };
+
+  const qEraser = document.getElementById('tQuickEraser');
+  if (qEraser) qEraser.onclick = () => { throwEraser(); };
+
+  const qTorch = document.getElementById('tQuickTorch');
+  if (qTorch) qTorch.onclick = () => { placeTorch(); updateTouchBadges(); };
+
+  // Botón de Pausa en la barra superior del HUD
+  const hudPause = document.getElementById('btnHudPause');
+  if (hudPause) {
+    hudPause.onclick = (e) => {
+      e.stopPropagation();
+      if (paused) resumeGame();
+      else pauseGame();
+    };
+  }
+
+  updateTouchBadges();
 }
 
 /* ============================================================
@@ -6775,7 +7068,8 @@ setTimeout(() => {
 }, 60);
 
 renderer.domElement.addEventListener('click', () => {
-  if (!paused && !pointerLocked) renderer.domElement.requestPointerLock();
+  if (document.body.classList.contains('touchActive')) return;
+  if (!paused && !pointerLocked) try { renderer.domElement.requestPointerLock(); } catch (_) {}
 });
 </script>
 </body>
