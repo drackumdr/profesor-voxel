@@ -3469,6 +3469,7 @@ function handlePadInput(val) {
       sfx([60 + parseInt(val, 10) * 2], 'triangle', 0.02, 0.03);
     }
   }
+  if (typeof syncVerticalDigits === 'function') syncVerticalDigits();
 }
 
 function navigatePad(dir) {
@@ -3525,6 +3526,7 @@ qInput.addEventListener('keydown', e => {
 
 qInput.addEventListener('input', () => {
   qInput.value = qInput.value.replace(/[^0-9\-]/g, '');
+  if (typeof syncVerticalDigits === 'function') syncVerticalDigits();
 });
 
 document.querySelectorAll('#quizNumPad .padBtn').forEach((btn, idx) => {
@@ -3572,13 +3574,7 @@ function openQuiz(nb) {
   const qh2 = document.getElementById('quizTitle');
   if (qh2) qh2.textContent = 'CUADERNO DE MATEMÁTICAS';
 
-  const q = makeQuestion(player.level);
-  currentAnswer = q.answer;
-  qText.textContent = q.text + ' = ?';
-  qInput.value = '';
-  quizEl.style.display = 'flex';
-  setPadFocus(10); // '0'
-  setTimeout(() => qInput.focus(), 30);
+  showQuestion(makeQuestion(player.level));
 }
 
 // Cuadernos correctos para pasar de nivel (nivel 1: 6, nivel 5: 10, nivel 10: 15)
@@ -4113,13 +4109,7 @@ function openQuizCustom(cb, title = null) {
   currentNotebook = null;
   const qh2 = document.getElementById('quizTitle');
   if (qh2) qh2.textContent = title || 'CUADERNO DE MATEMÁTICAS';
-  const q = makeQuestion(player.level);
-  currentAnswer = q.answer;
-  qText.textContent = q.text + ' = ?';
-  qInput.value = '';
-  quizEl.style.display = 'flex';
-  setPadFocus(10);
-  setTimeout(() => qInput.focus(), 30);
+  showQuestion(makeQuestion(player.level));
 }
 
 /* ---------- Efectos y uso de objetos consumibles / equipables ---------- */
