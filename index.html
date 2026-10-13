@@ -3218,22 +3218,22 @@ function makeQuestion(level) {
 
   const suma = (lo, hi, lo2 = lo, hi2 = hi) => {
     a = ri(lo, hi); b = ri(lo2, hi2);
-    text = ${a} + ; answer = a + b;
+    text = `${a} + ${b}`; answer = a + b;
     type = 'add'; operands = [a, b];
   };
   const resta = (lo, hi, lo2 = 1) => {
     a = ri(lo, hi); b = ri(lo2, a - 1);
-    text = ${a} − ; answer = a - b;
+    text = `${a} − ${b}`; answer = a - b;
     type = 'sub'; operands = [a, b];
   };
   const mult = (maxA, maxB = 10) => {
     a = ri(2, maxA); b = ri(2, maxB);
-    text = ${a} × ; answer = a * b;
+    text = `${a} × ${b}`; answer = a * b;
     type = 'mul'; operands = [a, b];
   };
   const div = (maxB, maxQ = 10) => {
     b = ri(2, maxB); answer = ri(2, maxQ); a = b * answer;
-    text = ${a} ÷ ;
+    text = `${a} ÷ ${b}`;
     type = 'div'; operands = [a, b]; // a = dividendo, b = divisor, answer = cociente
   };
   const repasoSumas = () => {
@@ -3264,7 +3264,7 @@ function makeQuestion(level) {
       break;
     case 8:
       if (r < 0.55) mult(12, 12);
-      else if (r < 0.85) { a = ri(11, 30); b = ri(2, 9); text = ${a} × ; answer = a * b; type = 'mul'; operands = [a, b]; }
+      else if (r < 0.85) { a = ri(11, 30); b = ri(2, 9); text = `${a} × ${b}`; answer = a * b; type = 'mul'; operands = [a, b]; }
       else repasoSumas();
       break;
     case 9:
@@ -3277,31 +3277,29 @@ function makeQuestion(level) {
       type = 'comb';
       if (r < 0.28) {
         a = ri(2, 12); b = ri(2, 12); c = ri(1, Math.min(a * b, 35));
-        text = ${a} ×  + ; answer = a * b + c;
+        text = `${a} × ${b} + ${c}`; answer = a * b + c;
         operands = [a, b, c];
       } else if (r < 0.50) {
         a = ri(2, 9); const res = ri(2, 12); b = a * res; c = ri(1, 25);
-        text = ( ÷ ) + ; answer = res + c;
+        text = `(${b} ÷ ${a}) + ${c}`; answer = res + c;
         operands = [b, a, c, res];
       } else if (r < 0.72) {
         const x = ri(2, 25); a = ri(2, 40);
-        text = x +  =    →   x =; answer = x;
+        text = `x + ${a} = ${x + a}   →   x =`; answer = x;
         operands = [x, a];
       } else if (r < 0.88) {
         a = ri(2, 9); b = ri(1, 20);
-        text = ${a}² + ; answer = a * a + b;
+        text = `${a}² + ${b}`; answer = a * a + b;
         operands = [a, b];
       } else {
         a = ri(3, 12); b = ri(3, 12); c = ri(2, 9);
-        text = ${a} × ( + ); answer = a * (b + c);
+        text = `${a} × (${b} + ${c})`; answer = a * (b + c);
         operands = [a, b, c];
       }
   }
   // No romper contrato: devolver text y answer. Añadir campos para render vertical.
   return { text, answer, type, operands, level: L };
 }
-}
-
 /* ============================================================
    17. UI / QUIZ
    ============================================================ */
