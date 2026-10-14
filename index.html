@@ -4752,7 +4752,7 @@ function updateAnimals(dt) {
     if (!inView) {
       if (Math.hypot(a.pos.x - player.pos.x, a.pos.z - player.pos.z) > 35) continue;
     }
-    if (a.pos.y < -30) { const s = findFreeSpot(10); a.pos.set(s.x, s.y, s.z); a.vel.set(0, 0, 0); }
+    if (a.pos.y < -30) { teleportMobNearPlayer(a); a.vel.set(0, 0, 0); a.stuckT = 0; }
     const fx = a.pos.x - player.pos.x, fz = a.pos.z - player.pos.z, fd = Math.hypot(fx, fz);
     let nx = 0, nz = 0, speed = 0;
     if (fd < 3.5) { nx = fx / fd; nz = fz / fd; speed = a.flee; a.dir = Math.atan2(nx, nz); }   // huyen del jugador
@@ -4893,7 +4893,11 @@ function updateBoss(dt) {
   const b = boss;
   if (!b.active || player.clock > 0) return;
   b.stun = Math.max(0, b.stun - dt);
-  if (b.pos.y < -30) bossKnockAway();
+  if (b.pos.y < -30) {
+    teleportMobNearPlayer(b);
+    b.stuckT = 0;
+    b.turnT = 0;
+  }
   const dx = player.pos.x - b.pos.x, dz = player.pos.z - b.pos.z, pd = Math.hypot(dx, dz) || 0.001;
   let nx = 0, nz = 0, speed = 0;
   if (b.stun <= 0 && pd > 1.2) { nx = dx / pd; nz = dz / pd; speed = (currentDiff ? currentDiff.bossSpeed : 3.6) + 0.1 * player.level; }
@@ -6485,8 +6489,11 @@ function updateMonitor(m, dt) {
   m.t += dt;
   m.cool = Math.max(0, m.cool - dt);
   if (m.pos.y < -30) {
-    const s = findFreeSpot(14);
-    m.pos.set(s.x, s.y, s.z); m.vel.set(0, 0, 0);
+    teleportMobNearPlayer(m);
+    m.vel.set(0, 0, 0);
+    m.lx = player.pos.x; m.lz = player.pos.z;
+    m.chaseT = Math.max(2, m.chaseT || 2);
+    m.stuckT = 0;
     return;
   }
   m.seeT -= dt;
