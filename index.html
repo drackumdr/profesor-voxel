@@ -1769,12 +1769,21 @@ function findSpotNear(minD, maxD) {
 }
 
 // Recupera enemigos atascados sin ponerlos dentro de casas ni encima del jugador.
+const TP_COOLDOWN = 2.5;
 function teleportMobNearPlayer(m, minD = 8, maxD = 16) {
+  if (m.tpCd > 0) return;
   const s = findSpotNear(minD, maxD);
   m.pos.set(s.x, s.y, s.z);
   m.vel.set(0, 0, 0);
   m.onGround = false;
   m.jumpCd = 0.4;
+  m.tpCd = TP_COOLDOWN;
+  if (m.icon) {
+    m.icon.visible = true;
+    m.icon.material.map = ICON_X;
+    m._tpFlashT = 0.6;
+  }
+  if (m._tpFlashT == null) m._tpFlashT = 0.6;
 }
 
 /* ---------- Inicialización por etapas (con progreso) ---------- */
@@ -3315,7 +3324,8 @@ function updateProfesor(dt) {
     b.group.userData.head.rotation.y = confused ? Math.sin(performance.now() / 120) * 0.9
       : idle ? Math.sin(performance.now() / 400) * 0.7 : 0;
     animateHuman(b.group, moved > 0.001, mode === 'chase' ? -1.4 : null);   // en persecución, brazos al frente
-    if (mode === 'chase') { profIcon.visible = true; profIcon.material.map = ICON_X; }
+    if (b._tpFlashT > 0) { profIcon.visible = true; profIcon.material.map = ICON_X; }
+    else if (mode === 'chase') { profIcon.visible = true; profIcon.material.map = ICON_X; }
     else if (mode === 'investigate') { profIcon.visible = true; profIcon.material.map = ICON_Q; }
     else profIcon.visible = false;
   } else {
@@ -4891,6 +4901,8 @@ function updateBoss(dt) {
     b.turnT -= dt;
     if (nx || nz) { const c = Math.cos(b.turn), sn = Math.sin(b.turn); [nx, nz] = [nx * c - nz * sn, nx * sn + nz * c]; }
   }
+  if (b.tpCd > 0) b.tpCd = Math.max(0, b.tpCd - dt);
+  if (b._tpFlashT > 0) b._tpFlashT = Math.max(0, b._tpFlashT - dt);
   const moved = stepMob(b, nx, nz, speed, dt);
   if (speed && moved < speed * dt * 0.3) {
     b.stuckT += dt;
@@ -6532,6 +6544,8 @@ function updateMonitor(m, dt) {
     if (m.stunT <= 0) { m.state = 'patrol'; m.cool = 6; m.wait = 1.5; pickMonitorWaypoint(m); }
   }
 
+  if (m.tpCd > 0) m.tpCd = Math.max(0, m.tpCd - dt);
+  if (m._tpFlashT > 0) m._tpFlashT = Math.max(0, m._tpFlashT - dt);
   const moved = stepMob(m, nx, nz, speed, dt);
   if (speed > 0 && moved < speed * dt * 0.3) {
     m.stuckT += dt;
@@ -6550,7 +6564,8 @@ function updateMonitor(m, dt) {
   if (inView) {
     m.group.rotation.y = m.heading;
     animateHuman(m.group, moved > 0.002, m.state === 'stun' ? 0 : null);
-    if (m.state === 'chase') { m.icon.visible = true; m.icon.material.map = ICON_X; }
+    if (m._tpFlashT > 0) { m.icon.visible = true; m.icon.material.map = ICON_X; }
+    else if (m.state === 'chase') { m.icon.visible = true; m.icon.material.map = ICON_X; }
     else if (m.notice > 0.05) { m.icon.visible = true; m.icon.material.map = ICON_Q; }
     else m.icon.visible = false;
     m.flash.color.setHex(m.state === 'chase' ? 0xff6a5a : 0xfff2b0);
