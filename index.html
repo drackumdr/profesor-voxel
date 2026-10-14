@@ -1768,6 +1768,15 @@ function findSpotNear(minD, maxD) {
   return findFreeSpot(10);
 }
 
+// Recupera enemigos atascados sin ponerlos dentro de casas ni encima del jugador.
+function teleportMobNearPlayer(m, minD = 8, maxD = 16) {
+  const s = findSpotNear(minD, maxD);
+  m.pos.set(s.x, s.y, s.z);
+  m.vel.set(0, 0, 0);
+  m.onGround = false;
+  m.jumpCd = 0.4;
+}
+
 /* ---------- Inicialización por etapas (con progreso) ---------- */
 function initWorld(stage) {
   world.clear();
@@ -4885,7 +4894,8 @@ function updateBoss(dt) {
   const moved = stepMob(b, nx, nz, speed, dt);
   if (speed && moved < speed * dt * 0.3) {
     b.stuckT += dt;
-    if (b.stuckT > 0.5) { b.turn = (Math.random() < 0.5 ? -1 : 1) * rf(1, 2.2); b.turnT = 1.2; b.stuckT = 0; }
+    if (b.stuckT > 0.5) { b.turn = (Math.random() < 0.5 ? -1 : 1) * rf(1, 2.2); b.turnT = 1.2; }
+    if (b.stuckT > 3.0) { teleportMobNearPlayer(b); b.stuckT = 0; b.turnT = 0; }
   } else b.stuckT = 0;
   const inView = isInFrustum(b.pos, 3.0, 65);
   b.group.visible = inView;
@@ -6526,7 +6536,12 @@ function updateMonitor(m, dt) {
   if (speed > 0 && moved < speed * dt * 0.3) {
     m.stuckT += dt;
     if (m.state === 'patrol' && m.stuckT > 1.2) { pickMonitorWaypoint(m); m.stuckT = 0; }
-    else if (m.state === 'chase' && m.stuckT > 2.5) { m.state = 'patrol'; m.cool = 5; m.stuckT = 0; pickMonitorWaypoint(m); }
+    else if (m.state === 'chase' && m.stuckT > 2.5) {
+      teleportMobNearPlayer(m);
+      m.lx = player.pos.x; m.lz = player.pos.z;
+      m.chaseT = 4 * (currentDiff ? currentDiff.searchMult : 1);
+      m.stuckT = 0;
+    }
   } else m.stuckT = 0;
   if (want !== null) m.heading = turnToward(m.heading, want, 4 * dt);
   const inView = isInFrustum(m.pos, 2.5, 55);
