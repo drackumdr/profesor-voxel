@@ -2551,7 +2551,12 @@ document.addEventListener('mousemove', e => {
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
   const isTouchActive = document.body.classList.contains('touchActive');
-  if (!pointerLocked && !gpConnected && !isTouchActive) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
+  const modalOpen = (quizEl && quizEl.style.display === 'flex') ||
+                    (tutEl && tutorOpen) ||
+                    (shopEl && shopEl.style.display === 'flex') ||
+                    (pauseEl.style.display === 'flex') ||
+                    (hotkeysModalOpen);
+  if (!pointerLocked && !gpConnected && !isTouchActive && !modalOpen) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
 });
 
 /* ---------- Menú de pausa (Esc) ---------- */
