@@ -3858,7 +3858,8 @@ function showQuestion(q) {
   const quizElDom = document.getElementById('quiz');
   if (quizElDom) quizElDom.style.display = 'flex';
   setPadFocus(10);
-  const isTouchDeviceActive = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (typeof isTouchPrimary === 'function' && isTouchPrimary());
+  const isTouchDeviceActive = typeof isTouchPrimary === 'function' ? isTouchPrimary()
+    : (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
   if (isTouchDeviceActive) {
     if (qInputEl) {
       qInputEl.setAttribute('inputmode', 'none');
