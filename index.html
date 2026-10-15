@@ -2097,6 +2097,15 @@ let paused = true;
 let pointerLocked = false;
 let gpConnected = false;
 
+// ¿Es un dispositivo táctil primario (móvil/tablet) o un PC con mouse disponible?
+function hasFinePointer() {
+  return !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches);
+}
+function isTouchPrimary() {
+  const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  return coarse && !hasFinePointer();
+}
+
 // Prevenir que Ctrl+W cierre accidentalmente la pestaña del navegador durante el juego
 window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyW' || e.key === 'w' || e.key === 'W')) {
@@ -2550,13 +2559,12 @@ document.addEventListener('mousemove', e => {
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
-  const isTouchActive = document.body.classList.contains('touchActive');
   const modalOpen = (quizEl && quizEl.style.display === 'flex') ||
                     (tutEl && tutorOpen) ||
                     (shopEl && shopEl.style.display === 'flex') ||
                     (pauseEl.style.display === 'flex') ||
                     (hotkeysModalOpen);
-  if (!pointerLocked && !gpConnected && !isTouchActive && !modalOpen) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
+  if (!pointerLocked && !gpConnected && !isTouchPrimary() && !modalOpen) pauseGame();   // Esc (u otro motivo) libera el ratón → menú de pausa
 });
 
 /* ---------- Menú de pausa (Esc) ---------- */
@@ -2578,7 +2586,7 @@ function resumeGame() {
   lockPointer();
 }
 function lockPointer() {
-  if (gpConnected || document.body.classList.contains('touchActive')) return;
+  if (gpConnected || isTouchPrimary()) return;
   try { renderer.domElement.requestPointerLock(); } catch (_) {}
   setTimeout(() => {
     if (!pointerLocked) { try { renderer.domElement.requestPointerLock(); } catch (_) {} }
@@ -7218,9 +7226,9 @@ function updateTouchBadges() {
 }
 
 function initTouchControls() {
-  const isTouchDevice = ('ontouchstart' in window) ||
-                        (navigator.maxTouchPoints > 0) ||
-                        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  // Solo móviles/tablets con puntero principal grueso y SIN ratón fino.
+  // Un PC con pantalla táctil + ratón/teclado NO usa controles táctiles.
+  const isTouchDevice = isTouchPrimary();
   const touchEl = document.getElementById('touchControls');
   if (!touchEl) return;
   if (!isTouchDevice) {
@@ -7230,8 +7238,8 @@ function initTouchControls() {
     touchEl.style.display = 'block';
   }
 
-  // Activar layout táctil en el primer toque de pantalla
-  window.addEventListener('touchstart', function enableTouchLayout() {
+  // Activar layout táctil en el primer toque, solo si es táctil de verdad
+  if (isTouchDevice) window.addEventListener('touchstart', function enableTouchLayout() {
     document.body.classList.add('touchActive');
     if (touchEl) touchEl.style.display = 'block';
     updateTouchBadges();
@@ -7668,7 +7676,7 @@ setTimeout(() => {
 }, 60);
 
 renderer.domElement.addEventListener('click', () => {
-  if (document.body.classList.contains('touchActive')) return;
+  if (isTouchPrimary()) return;
   if (!paused && !pointerLocked) lockPointer();
 });
 </script>
