@@ -2575,7 +2575,14 @@ function resumeGame() {
   if (hotkeysModalOpen) return;
   pauseEl.style.display = 'none';
   paused = false;
+  lockPointer();
+}
+function lockPointer() {
+  if (gpConnected || document.body.classList.contains('touchActive')) return;
   try { renderer.domElement.requestPointerLock(); } catch (_) {}
+  setTimeout(() => {
+    if (!pointerLocked) { try { renderer.domElement.requestPointerLock(); } catch (_) {} }
+  }, 120);
 }
 pauseEl.addEventListener('click', resumeGame);
 document.addEventListener('keydown', e => {
@@ -4072,14 +4079,7 @@ function closeQuizModal() {
   quizCallback = null;
   paused = false;
   for (const k in keys) keys[k] = false;
-  if (!gpConnected && !document.body.classList.contains('touchActive')) {
-    try { renderer.domElement.requestPointerLock(); } catch (_) {}
-    setTimeout(() => {
-      if (!pointerLocked) {
-        try { renderer.domElement.requestPointerLock(); } catch (_) {}
-      }
-    }, 120);
-  }
+  lockPointer();
   if (cb) cb(false, currentAnswer);
   updateStats();
 }
@@ -4333,9 +4333,7 @@ function closeTutor() {
   tutorOpen = false;
   tutEl.style.display = 'none';
   paused = false;
-  if (!document.body.classList.contains('touchActive')) {
-    try { renderer.domElement.requestPointerLock(); } catch (_) {}
-  }
+  lockPointer();
 }
 
 document.getElementById('tutorNext').addEventListener('click', tutorAdvance);
@@ -4482,9 +4480,7 @@ function submitAnswer() {
   if (!(tutorNeeded && showTutor(qForTutor, val))) {
     if (tutorNeeded) showBigWrong(currentAnswer, sub0);
     paused = false;
-    if (!gpConnected && !document.body.classList.contains('touchActive')) {
-      try { renderer.domElement.requestPointerLock(); } catch (_) {}
-    }
+    lockPointer();
   }
   if (notebooks.length < 14) spawnNotebooks(8);
   updateStats();
@@ -4878,7 +4874,7 @@ function bossDuel() {
   showMsg(`⚔ ¡DUELO! Acierta para dañar al jefe (${boss.hp}/${boss.maxHp})`, '#ff4dd2', 2500);
   openQuizCustom((ok, ans) => {
     paused = false;                            // antes de loseLife: si hay game over, éste lo vuelve a pausar
-    try { renderer.domElement.requestPointerLock(); } catch (_) {}
+    lockPointer();
     if (ok) {
       boss.hp--;
       sfx([72, 79, 84], 'triangle', 0.08, 0.08);
@@ -5473,7 +5469,7 @@ function openShop() {
 function closeShop() {
   shopEl.style.display = 'none';
   paused = false;
-  try { renderer.domElement.requestPointerLock(); } catch (_) {}
+  lockPointer();
 }
 document.getElementById('shopClose').onclick = closeShop;
 
@@ -5932,9 +5928,7 @@ function openBriefcase(b) {
   openQuizCustom((ok, ans) => {
     paused = false;
     for (const k in keys) keys[k] = false;
-    if (!gpConnected) {
-      try { renderer.domElement.requestPointerLock(); } catch (_) {}
-    }
+    lockPointer();
     if (ok) {
       b.collected = true;
       scene.remove(b.mesh);
@@ -7649,7 +7643,7 @@ setTimeout(() => {
           startEl.style.display = 'none';
           paused = false;
           startMusic();
-          try { renderer.domElement.requestPointerLock(); } catch (_) {}
+          lockPointer();
           spawnNotebooks(12, true);   // cuadernos cercanos y en rango medio
           spawnNotebooks(18);         // cuadernos distribuidos por todo el mapa
           spawnPowerups(4);
@@ -7675,7 +7669,7 @@ setTimeout(() => {
 
 renderer.domElement.addEventListener('click', () => {
   if (document.body.classList.contains('touchActive')) return;
-  if (!paused && !pointerLocked) try { renderer.domElement.requestPointerLock(); } catch (_) {}
+  if (!paused && !pointerLocked) lockPointer();
 });
 </script>
 </body>
