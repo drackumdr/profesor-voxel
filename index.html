@@ -2109,6 +2109,8 @@ function hasFinePointer() {
   return !!(window.matchMedia && window.matchMedia('(any-pointer: fine)').matches);
 }
 function isTouchPrimary() {
+  // Android TV reporta puntero "coarse" pero sin pantalla táctil: exigir puntos táctiles reales.
+  if (!(navigator.maxTouchPoints > 0)) return false;
   const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   return coarse && !hasFinePointer();
 }
@@ -6944,6 +6946,12 @@ let gpNavTimer = 0;
 let lastGpStickNavX = false;
 let lastGpStickNavY = false;
 
+// Hook para APK Android TV: Android WebView no implementa la Gamepad API, así que
+// el lado nativo (que sí recibe los eventos del mando Bluetooth) alimenta el estado
+// llamando a window.mcGamepadInput({axes:[lx,ly,rx,ry], buttons:[...bool], connected:true}).
+window.__mcGpBridge = null;
+window.mcGamepadInput = function (snap) { window.__mcGpBridge = snap; };
+
 window.addEventListener('gamepadconnected', () => {
   gpConnected = true;
   showMsg('🎮 Control conectado', '#7cff5a', 2000);
@@ -6964,11 +6972,21 @@ window.addEventListener('gamepaddisconnected', () => {
 });
 
 function updateGamepad(dt) {
-  if (!navigator.getGamepads) return;
-  const gamepads = navigator.getGamepads();
   let gp = null;
-  for (let i = 0; i < gamepads.length; i++) {
-    if (gamepads[i]) { gp = gamepads[i]; break; }
+  if (navigator.getGamepads) {
+    const gamepads = navigator.getGamepads();
+    for (let i = 0; i < gamepads.length; i++) {
+      if (gamepads[i]) { gp = gamepads[i]; break; }
+    }
+  }
+  // Puente para WebViews sin Gamepad API (APK Android TV): el lado nativo
+  // inyecta el estado con window.mcGamepadInput({axes:[...], buttons:[...], connected:true}).
+  if (!gp && window.__mcGpBridge && window.__mcGpBridge.connected) {
+    const btns = window.__mcGpBridge.buttons || [];
+    gp = {
+      axes: window.__mcGpBridge.axes || [],
+      buttons: btns.map(p => ({ pressed: !!p, value: p ? 1 : 0 })),
+    };
   }
   if (!gp) {
     if (gpConnected) {
