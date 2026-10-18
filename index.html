@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <title>MathCraft — El Profesor Voxel</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#87ceeb;font-family:monospace;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
@@ -7748,6 +7752,14 @@ renderer.domElement.addEventListener('click', () => {
   if (isTouchPrimary()) return;
   if (!paused && !pointerLocked) lockPointer();
 });
+</script>
+<script>
+// Service worker requerido por TWA (Trusted Web Activity). No cachea: solo cumplimenta el requisito.
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
